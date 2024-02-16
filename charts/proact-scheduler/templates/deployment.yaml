@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "proact-scheduler.fullname" . }}
+  labels:
+    {{- include "proact-scheduler.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "proact-scheduler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "proact-scheduler.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "proact-scheduler.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: create-postgres-database
+          image: "{{ .Values.postgresql.image }}"
+          imagePullPolicy: Always
+          command:
+          - "/bin/sh"
+          - "-c"
+          - >
+            echo "Creating database {{ .Values.postgresql.database }} if it does not exist..." &&
+            psql -h {{ .Values.postgresql.host }} -p {{ .Values.postgresql.port }} -U {{ .Values.postgresql.username }} -lqt | cut -d \| -f 1 | grep -qw {{ .Values.postgresql.database }} || psql -h {{ .Values.postgresql.host }} -p {{ .Values.postgresql.port }} -U {{ .Values.postgresql.username }} -c "CREATE DATABASE {{ .Values.postgresql.database }};" &&
+            echo "Database {{ .Values.postgresql.database }} created or already exists. Listing all databases:" &&
+            psql -h {{ .Values.postgresql.host }} -p {{ .Values.postgresql.port }} -U {{ .Values.postgresql.username }} -l &&
+            sleep 5
+          env:
+          - name: PGPASSWORD
+            {{- if not .Values.postgresql.existingSecret }}
+            value: "{{ .Values.postgresql.password }}"
+            {{- else }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgresql.existingSecret.name }}
+                key: {{ .Values.postgresql.existingSecret.passwordKey }}
+            {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          args:
+            - server
+          env:
+          - name: PROACT_PG_HOST
+            value: "{{ .Values.postgresql.host }}"
+          - name: PROACT_PG_PORT
+            value: "{{ .Values.postgresql.port }}"
+          - name: PROACT_PG_USER
+            value: "{{ .Values.postgresql.username }}"
+          - name: PROACT_PG_PASSWORD
+            {{- if not .Values.postgresql.existingSecret }}
+            value: "{{ .Values.postgresql.password }}"
+            {{- else }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgresql.existingSecret.name }}
+                key: {{ .Values.postgresql.existingSecret.passwordKey }}
+            {{- end }}
+          - name: PROACT_PG_DATABASE
+            value: "{{ .Values.postgresql.database }}"
+          - name: PROACT_ENVIRONMENT
+            value: "{{ .Values.env.PROACT_ENVIRONMENT }}"
+          - name: PROACT_TEMPORAL_HOST
+            value: "{{ .Values.temporal.host }}:{{ .Values.temporal.port }}"
+            
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
