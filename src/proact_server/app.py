@@ -26,6 +26,18 @@ app.include_router(schedule.router)
 Base.metadata.create_all(bind=engine)
 
 
+# TODO: Need to update this probes later
+@app.get("/ready", include_in_schema=False)
+async def readinessProbe():
+    return {"status": "ok"}
+
+
+@app.get("/healthz", include_in_schema=False)
+async def livenessProbe():
+    # check if postgres
+    return {"status": "ok"}
+
+
 
 async def main():
     print(f"Connecting to Temporal at {TEMPORAL_HOST}")
