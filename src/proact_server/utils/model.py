@@ -40,6 +40,20 @@ class CreateScheduleConfig(BaseModel):
         return v
     schedule_name: str
     container_registry_id: str
+    container_registry_url: str
+    cron_schedule: str
+    start_date: Optional[datetime] = Field(default=None)
+    end_date: Optional[datetime] = Field(default=None)
+    scan_configs: list[ScanConfig]
+
+class CreateScheduleConfigResponse(BaseModel):
+    @validator('*', pre=True)
+    def empty_str_to_none(cls, v):
+        if v == '':
+            return None
+        return v
+    schedule_name: str
+    container_registry_id: str
     cron_schedule: str
     start_date: Optional[datetime] = Field(default=None)
     end_date: Optional[datetime] = Field(default=None)

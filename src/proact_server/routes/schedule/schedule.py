@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi import Request
 from utils.database import get_db
-from utils.model import CreateScheduleConfig, CreateDeleteUpdateScheduleResponse, ScheduleResponse, ScheduleDetailsResponseNew
+from utils.model import CreateScheduleConfig, CreateDeleteUpdateScheduleResponse, ScheduleResponse, ScheduleDetailsResponseNew, CreateScheduleConfigResponse
 from sqlalchemy.orm import Session
 from routes.schedule.service import create_new_schedule, delete_schedule, list_schedules, get_schedule_configs, get_schedule_details, pause_schedule, resume_schedule
 from datetime import datetime
@@ -35,7 +35,7 @@ async def listSchedules(request: Request, db: Session = Depends(get_db)) -> list
     return schedules
     
 @router.get("/{scheduleId}", response_model_exclude_none=True)
-async def getScheduleConfigs(request: Request, scheduleId: str, db: Session = Depends(get_db)) -> CreateScheduleConfig:
+async def getScheduleConfigs(request: Request, scheduleId: str, db: Session = Depends(get_db)) -> CreateScheduleConfigResponse:
     """
     Get schedule configs with the given schedule_id
     """
