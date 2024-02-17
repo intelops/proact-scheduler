@@ -2,7 +2,7 @@
 from uuid import uuid4
 from sqlalchemy.orm import Session
 from utils.model import CreateScheduleConfig, Schedules, ScanConfigs, Executions, ExecutionJobs, ScanStatus, ScheduleResponse, ScanConfig
-from utils.model import ScheduleEnum, ScheduleDetailsResponse, ExecutionResponseNew, ScheduleDetailsResponseNew
+from utils.model import ScheduleEnum, ScheduleDetailsResponse, ExecutionResponseNew, ScheduleDetailsResponseNew, CreateScheduleConfigResponse
 from temporalio.client import Client,Schedule, ScheduleActionStartWorkflow, ScheduleSpec,ScheduleState
 from temporalio import workflow
 import json
@@ -16,12 +16,31 @@ with workflow.unsafe.imports_passed_through():
 async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedule_id: str = None) -> tuple[ScheduleEnum, str]:
     #TODO: Make the db commits atomic, if any of the db commit fails then rollback all the db commits
     try:
+
+        container_registry_url = config.container_registry_url
         schedules = config.model_dump()        
         scan_configs = schedules.pop("scan_configs")
+        schedules.pop("container_registry_url")
+
+        updated_scan_configs = []
+
+        #Update docker_image_name by appending container_registry_url. Also ensure docker_image_name and  container_registry_url dont have any trailing or leading slashes
+        if(container_registry_url[-1] == "/"):
+            container_registry_url = container_registry_url[:-1]
+        if(container_registry_url[0] == '/'):
+            container_registry_url = container_registry_url[1:]
+        for scan_config in scan_configs:
+            if(scan_config['docker_image_name'][-1] == "/"):
+                scan_config['docker_image_name'] = scan_config['docker_image_name'][:-1]
+            if(scan_config['docker_image_name'][0] == '/'):
+                scan_config['docker_image_name'] = scan_config['docker_image_name'][1:]
+            scan_config['docker_image_name'] = container_registry_url + "/" + scan_config['docker_image_name']
+            updated_scan_configs.append(scan_config)
 
         #During update schedule_id will be passed to keep the schedule id same even if we are creating a new schedule
         if(schedule_id):
             schedules["schedule_id"] = schedule_id
+
 
         #Create a schedule
         new_schedule = Schedules(**schedules)
@@ -32,7 +51,7 @@ async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedul
         schedule_id = new_schedule.schedule_id
 
         #Create executions
-        new_execution = Executions(schedule_id=schedule_id, scan_images_count=len(scan_configs))
+        new_execution = Executions(schedule_id=schedule_id, scan_images_count=len(updated_scan_configs))
         db.add(new_execution)
         db.commit()
         db.refresh(new_execution)
@@ -40,7 +59,7 @@ async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedul
 
 
         #Add scan configs
-        for scan_config in scan_configs:
+        for scan_config in updated_scan_configs:
             job_id = str(uuid4())
             scan_config["schedule_id"] = schedule_id
             scan_config["job_id"] = job_id
@@ -141,7 +160,7 @@ async def list_schedules(db: Session) -> list[ScheduleResponse]:
         schedules = [ScheduleResponse(**schedule) for schedule in updated_schedules]
         return schedules
     
-async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleConfig:
+async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleConfigResponse:
     """
     Get schedule details with the given schedule_id
     """
@@ -154,11 +173,11 @@ async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleCo
         scan_configs = [ScanConfig(**scan_config._asdict()) for scan_config in scan_configs]
         schedule["scan_configs"] = scan_configs
 
-        schedule_details = CreateScheduleConfig(**schedule)
+        schedule_details = CreateScheduleConfigResponse(**schedule)
         return schedule_details.model_dump()
     except Exception as e:
         print(e)
-        return CreateScheduleConfig(schedule_name="", container_registry_id="", cron_schedule="", scan_configs=[])
+        return CreateScheduleConfigResponse(schedule_name="/NA", container_registry_id="/NA", cron_schedule="/NA", scan_configs=[])
     
 async def get_schedule_details(scheduleId: str, db: Session):
     #Get execution details from Executions
