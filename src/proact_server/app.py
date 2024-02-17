@@ -16,8 +16,7 @@ with workflow.unsafe.imports_passed_through():
 
 
 app = FastAPI(
-    title="SCSCTL",
-    description="SCSCTL is a tool to automate security scans for container images",
+    title="Proact Server",
     version="0.0.1"
 )
 

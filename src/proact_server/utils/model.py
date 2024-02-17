@@ -30,6 +30,7 @@ class ScanConfig(BaseModel):
     dgraph_db_host: Optional[str] = Field(default=None)
     dgraph_db_port: Optional[str] = Field(default=None)
     rebuild_image: Optional[bool] = Field(default=False)
+    schedule_status: Optional[str] = Field(default=None)
 
 class CreateScheduleConfig(BaseModel):
     @validator('*', pre=True)
@@ -85,6 +86,7 @@ class ScanConfigs(Base):
     dgraph_db_port = Column(String, nullable=True)
     is_api = Column(Boolean, default=False)
     rebuild_image = Column(Boolean, default=False)
+    schedule_status = Column(String, nullable=True)
 
 class Executions(Base):
     __tablename__ = 'executions'
@@ -151,6 +153,7 @@ class ScheduleResponse(BaseModel):
     
     schedule_id: str
     schedule_name: str
+    schedule_status: str
 
 
 class ExecutionResponse(BaseModel):

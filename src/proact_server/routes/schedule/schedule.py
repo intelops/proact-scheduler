@@ -37,7 +37,7 @@ async def listSchedules(request: Request, db: Session = Depends(get_db)) -> list
 @router.get("/{scheduleId}", response_model_exclude_none=True)
 async def getScheduleConfigs(request: Request, scheduleId: str, db: Session = Depends(get_db)) -> CreateScheduleConfig:
     """
-    Get schedule details with the given schedule_id
+    Get schedule configs with the given schedule_id
     """
     #Get schedule details from Schedules
     configs = await get_schedule_configs(scheduleId, db)

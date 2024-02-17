@@ -13,5 +13,5 @@ class ProactWorkflow:
         return await workflow.execute_activity(
             proact_scan_activity,
             config,
-            start_to_close_timeout=timedelta(seconds=10)
+            start_to_close_timeout=timedelta(seconds=60)
         )

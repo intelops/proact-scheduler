@@ -44,6 +44,7 @@ async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedul
             job_id = str(uuid4())
             scan_config["schedule_id"] = schedule_id
             scan_config["job_id"] = job_id
+            scan_config["schedule_status"] = "running"
             db.add(ScanConfigs(**scan_config))
             # db.commit()
 
@@ -123,11 +124,21 @@ async def delete_schedule(schedule_id: str, db: Session) -> tuple[ScheduleEnum, 
 async def list_schedules(db: Session) -> list[ScheduleResponse]:
     #Get schedule name and schedule id from Schedules
     schedules = db.query(Schedules.schedule_name, Schedules.schedule_id).all()
+
     if(schedules == None):
         return []
     else:
+        #Get schedule_status from ScanConfigs
+        updated_schedules = []
+        for schedule in schedules:
+            schedule_status = db.query(ScanConfigs.schedule_status).filter(ScanConfigs.schedule_id == schedule.schedule_id).first()
+            if(schedule_status):
+                schedule_status = schedule_status[0]
+                schedule = schedule._asdict()
+                schedule["schedule_status"] = schedule_status
+                updated_schedules.append(schedule)
         #Convert to list of ScheduleResponse using ** expression
-        schedules = [ScheduleResponse(**schedule._asdict()) for schedule in schedules]
+        schedules = [ScheduleResponse(**schedule) for schedule in updated_schedules]
         return schedules
     
 async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleConfig:
@@ -139,7 +150,7 @@ async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleCo
         schedule = db.query(Schedules.schedule_id,Schedules.schedule_name,Schedules.start_date,Schedules.end_date, Schedules.container_registry_id,Schedules.cron_schedule,Schedules.update_time).filter(Schedules.schedule_id == scheduleId).first()._asdict()
 
         #Get scan configs
-        scan_configs = db.query(ScanConfigs.docker_image_name,ScanConfigs.pyroscope_url,ScanConfigs.pyroscope_app_name,ScanConfigs.falco_pod_name,ScanConfigs.falco_target_deployment_name, ScanConfigs.docker_file_folder_path, ScanConfigs.db_enabled, ScanConfigs.falco_enabled, ScanConfigs.renovate_enabled, ScanConfigs.renovate_repo_name, ScanConfigs.renovate_repo_token,ScanConfigs.dgraph_enabled, ScanConfigs.dgraph_db_host, ScanConfigs.dgraph_db_port).filter(ScanConfigs.schedule_id == scheduleId).all()
+        scan_configs = db.query(ScanConfigs.docker_image_name,ScanConfigs.pyroscope_url,ScanConfigs.pyroscope_app_name,ScanConfigs.falco_pod_name,ScanConfigs.falco_target_deployment_name, ScanConfigs.docker_file_folder_path, ScanConfigs.db_enabled, ScanConfigs.falco_enabled, ScanConfigs.renovate_enabled, ScanConfigs.renovate_repo_name, ScanConfigs.renovate_repo_token,ScanConfigs.dgraph_enabled, ScanConfigs.dgraph_db_host, ScanConfigs.dgraph_db_port, ScanConfigs.schedule_status).filter(ScanConfigs.schedule_id == scheduleId).all()
         scan_configs = [ScanConfig(**scan_config._asdict()) for scan_config in scan_configs]
         schedule["scan_configs"] = scan_configs
 
@@ -184,11 +195,15 @@ async def pause_schedule(scheduleId: str, db: Session) -> tuple[ScheduleEnum, st
         execution_jobs = db.query(ExecutionJobs).filter(ExecutionJobs.execution_id == execution_id).all()
         job_ids = [job.job_id for job in execution_jobs]
 
+
         #Pause schedule from temporal
         client = await Client.connect(TEMPORAL_HOST)
         for job_id in job_ids:
             handle = client.get_schedule_handle(str(job_id))
             await handle.pause()
+        #Update schedule status in ScanConfigs
+        db.query(ScanConfigs).filter(ScanConfigs.schedule_id == scheduleId).update({"schedule_status": "paused"})
+        db.commit()
         return ScheduleEnum.SCHEDULE_PAUSED, scheduleId
     except Exception as e:
         print(e)
@@ -206,6 +221,9 @@ async def resume_schedule(scheduleId: str, db: Session) -> tuple[ScheduleEnum, s
         for job_id in job_ids:
             handle = client.get_schedule_handle(str(job_id))
             await handle.unpause()
+        #Update schedule status in ScanConfigs
+        db.query(ScanConfigs).filter(ScanConfigs.schedule_id == scheduleId).update({"schedule_status": "running"})
+        db.commit()
         return ScheduleEnum.SCHEDULE_RESUMED, scheduleId
     except Exception as e:
         print(e)
