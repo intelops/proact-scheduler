@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  proact-scheduler:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2024-02-17T08:50:11.07065184Z"
+    description: A Helm chart for Kubernetes
+    digest: f0b87d2cdcc5740aa5b39afaa053bf2ed5a3dd08aca87513e5380e1e9e7ba732
+    name: proact-scheduler
+    type: application
+    urls:
+    - https://github.com/intelops/proact-scheduler/releases/download/proact-scheduler-0.1.0/proact-scheduler-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-02-17T08:50:11.070662349Z"
