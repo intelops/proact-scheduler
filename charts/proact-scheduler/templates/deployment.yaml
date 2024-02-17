@@ -60,8 +60,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          args:
-            - server
           env:
           - name: PROACT_PG_HOST
             value: "{{ .Values.postgresql.host }}"
