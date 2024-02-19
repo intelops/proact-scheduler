@@ -20,3 +20,4 @@ class Config:
     dgraph_db_port: str = None
     is_api: bool = False
     execution_id: str = None
+    rebuild_image: bool = False

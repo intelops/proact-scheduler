@@ -41,7 +41,6 @@ async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedul
         if(schedule_id):
             schedules["schedule_id"] = schedule_id
 
-
         #Create a schedule
         new_schedule = Schedules(**schedules)
         db.add(new_schedule)
@@ -56,7 +55,6 @@ async def create_new_schedule(config: CreateScheduleConfig, db: Session, schedul
         db.commit()
         db.refresh(new_execution)
         execution_id = new_execution.execution_id
-
 
         #Add scan configs
         for scan_config in updated_scan_configs:
@@ -169,7 +167,7 @@ async def get_schedule_configs(scheduleId: str, db: Session) -> CreateScheduleCo
         schedule = db.query(Schedules.schedule_id,Schedules.schedule_name,Schedules.start_date,Schedules.end_date, Schedules.container_registry_id,Schedules.cron_schedule,Schedules.update_time).filter(Schedules.schedule_id == scheduleId).first()._asdict()
 
         #Get scan configs
-        scan_configs = db.query(ScanConfigs.docker_image_name,ScanConfigs.pyroscope_url,ScanConfigs.pyroscope_app_name,ScanConfigs.falco_pod_name,ScanConfigs.falco_target_deployment_name, ScanConfigs.docker_file_folder_path, ScanConfigs.db_enabled, ScanConfigs.falco_enabled, ScanConfigs.renovate_enabled, ScanConfigs.renovate_repo_name, ScanConfigs.renovate_repo_token,ScanConfigs.dgraph_enabled, ScanConfigs.dgraph_db_host, ScanConfigs.dgraph_db_port, ScanConfigs.schedule_status).filter(ScanConfigs.schedule_id == scheduleId).all()
+        scan_configs = db.query(ScanConfigs.docker_image_name,ScanConfigs.pyroscope_url,ScanConfigs.pyroscope_app_name,ScanConfigs.falco_pod_name,ScanConfigs.falco_target_deployment_name, ScanConfigs.docker_file_folder_path, ScanConfigs.db_enabled, ScanConfigs.falco_enabled, ScanConfigs.renovate_enabled, ScanConfigs.renovate_repo_name, ScanConfigs.renovate_repo_token,ScanConfigs.dgraph_enabled, ScanConfigs.dgraph_db_host, ScanConfigs.dgraph_db_port, ScanConfigs.schedule_status, ScanConfigs.rebuild_image, ScanConfigs.pyroscope_enabled).filter(ScanConfigs.schedule_id == scheduleId).all()
         scan_configs = [ScanConfig(**scan_config._asdict()) for scan_config in scan_configs]
         schedule["scan_configs"] = scan_configs
 
@@ -194,13 +192,14 @@ async def get_schedule_details(scheduleId: str, db: Session):
         execution_details = []
         for job_id in job_ids:
             #Get only latest scan status for each job_id based on the datetime field
-            scan_status = db.query(ScanStatus.execution_id, ScanStatus.job_id, ScanStatus.vulnerable_packages_count, ScanStatus.vulnerablitites_count, ScanStatus.severity_critical_count, ScanStatus.severity_high_count, ScanStatus.severity_low_count, ScanStatus.severity_medium_count, ScanStatus.severity_unknown_count, ScanStatus.datetime, ScanStatus.scan_report).filter(ScanStatus.job_id == job_id).order_by(ScanStatus.datetime.desc()).first()
+            scan_status = db.query(ScanStatus.execution_id, ScanStatus.job_id, ScanStatus.vulnerable_packages_count, ScanStatus.vulnerablitites_count, ScanStatus.severity_critical_count, ScanStatus.severity_high_count, ScanStatus.severity_low_count, ScanStatus.severity_medium_count, ScanStatus.severity_unknown_count, ScanStatus.datetime, ScanStatus.scan_report, ScanStatus.rebuilded_image_name).filter(ScanStatus.job_id == job_id).order_by(ScanStatus.datetime.desc()).first()
             if(scan_status):
                 #convert to dictionary
                 scan_status_dict = scan_status._asdict()
                 scan_status_dict["execution_id"] = str(scan_status_dict["execution_id"])
                 scan_status_dict["job_id"] = str(scan_status_dict["job_id"])
                 scan_status_dict["scan_report"] = json.loads(scan_status_dict["scan_report"])
+                scan_status_dict["rebuilded_image_name"] = scan_status_dict["rebuilded_image_name"] if scan_status_dict["rebuilded_image_name"] else ""
                 execution_details.append(ExecutionResponseNew(**scan_status_dict))
         return ScheduleDetailsResponseNew(schedule_id=scheduleId, schedule_name=schedule_name,total_scan_images_count=execution.scan_images_count, total_vulnerable_images_count= execution.vulnerable_images_count, total_vulnerablities_count=execution.vulnerablities_count, executions=execution_details)
     except Exception as e:
