@@ -54,13 +54,17 @@ async def main():
     
 if __name__ == "__main__":
     # #check environment and run uvicorn accordingly
-    loop = asyncio.get_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.create_task(main())
-    if os.getenv("PROACT_ENVIRONMENT","dev") == "prod":
-        config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="info", workers=2)
-    else:
-        config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="debug", reload=True)
-    server = uvicorn.Server(config)
-    loop.run_until_complete(server.serve())
+    try:
+        loop = asyncio.get_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.create_task(main())
+        if os.getenv("PROACT_ENVIRONMENT","dev") == "prod":
+            config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="info", workers=2)
+        else:
+            config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="debug", reload=True)
+        server = uvicorn.Server(config)
+        loop.run_until_complete(server.serve())
+    except Exception as e:
+        print("Error in main", e)
+        loop.close()
 
