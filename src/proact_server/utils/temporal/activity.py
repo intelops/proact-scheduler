@@ -29,6 +29,7 @@ async def proact_scan_activity(config: dict) -> str:
             run_type="api",
             status=result.get("scan_status"),
             scan_report=scan_report,
+            rebuilded_image_name = result.get("rebuild_image_name") if result.get("rebuild_image_status", '') == 'success' else None,
             **result.get("stats")
         )
     db.add(scan)

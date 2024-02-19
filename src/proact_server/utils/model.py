@@ -135,6 +135,7 @@ class ScanStatus(Base):
     severity_unknown_count = Column(Integer, default=0)
     status = Column(Boolean, default=False)
     scan_report = Column(String, nullable=True)
+    rebuilded_image_name = Column(String, nullable=True)
     datetime = Column(DateTime, default=datetime.utcnow)
 
 
@@ -196,6 +197,7 @@ class ExecutionResponseNew(BaseModel):
     severity_low_count: int
     severity_unknown_count: int
     datetime: datetime
+    rebuilded_image_name: str
     scan_report: dict
 
 class ScheduleDetailsResponseNew(BaseModel):
