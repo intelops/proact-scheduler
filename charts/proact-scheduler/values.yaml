@@ -99,4 +99,4 @@ temporal:
 
 # Configure the environment variables for the application
 env:
-  SCSCTL_ENVIRONMENT: ""
+  PROACT_ENVIRONMENT: ""
