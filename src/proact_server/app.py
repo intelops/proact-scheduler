@@ -59,7 +59,7 @@ if __name__ == "__main__":
         asyncio.set_event_loop(loop)
         loop.create_task(main())
         if os.getenv("PROACT_ENVIRONMENT","dev") == "prod":
-            config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="info", workers=2)
+            config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="debug", workers=1)
         else:
             config = uvicorn.Config("app:app", loop=loop,host="0.0.0.0",port=int(SERVER_PORT), log_level="debug", reload=True)
         server = uvicorn.Server(config)
