@@ -85,7 +85,7 @@ tolerations: []
 affinity: {}
 
 postgresql:
-  image: docker.io/bitnami/postgresql:16.0.0-debian-11-r13
+  image: ghcr.io/kube-tarian/helmrepo-supporting-tools/postgresql:16.0.0-debian-11-r13
   host: "postgresql"
   port: "5432"
   database: ""
