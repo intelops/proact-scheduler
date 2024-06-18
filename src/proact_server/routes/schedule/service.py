@@ -149,10 +149,13 @@ async def list_schedules(db: Session) -> list[ScheduleResponse]:
         updated_schedules = []
         for schedule in schedules:
             schedule_status = db.query(ScanConfigs.schedule_status).filter(ScanConfigs.schedule_id == schedule.schedule_id).first()
+            last_scan_time = db.query(ScanStatus.datetime).filter(ScanStatus.execution_id == db.query(Executions.execution_id).filter(Executions.schedule_id == schedule.schedule_id).first().execution_id).order_by(ScanStatus.datetime.desc()).first()
             if(schedule_status):
                 schedule_status = schedule_status[0]
                 schedule = schedule._asdict()
                 schedule["schedule_status"] = schedule_status
+                if(last_scan_time):
+                    schedule["last_scan_time"] = last_scan_time[0]
                 updated_schedules.append(schedule)
         #Convert to list of ScheduleResponse using ** expression
         schedules = [ScheduleResponse(**schedule) for schedule in updated_schedules]

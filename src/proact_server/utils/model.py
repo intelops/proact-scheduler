@@ -169,6 +169,8 @@ class ScheduleResponse(BaseModel):
     schedule_id: str
     schedule_name: str
     schedule_status: str
+    # optional last_scan_time
+    last_scan_time: Optional[str] = Field(default="")
 
 
 class ExecutionResponse(BaseModel):
