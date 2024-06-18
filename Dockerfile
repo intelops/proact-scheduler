@@ -12,6 +12,11 @@ RUN pip install -r requirements.txt
 
 
 RUN apt-get -y update; apt-get -y install curl
+
+# Install Git
+RUN apt-get install -y git
+
+# Install Trivy
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install scsctl from test pypi
