@@ -20,7 +20,7 @@ RUN apt-get install -y git
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install scsctl from test pypi
-RUN pip install --no-cache-dir --index-url https://test.pypi.org/simple/ scsctl==0.0.6.9
+RUN pip install --no-cache-dir --index-url https://test.pypi.org/simple/ scsctl==0.0.6.10
 
 # Copy the current directory contents into the container at /app
 COPY . /app
